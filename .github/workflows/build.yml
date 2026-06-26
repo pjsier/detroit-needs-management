@@ -27,3 +27,14 @@ jobs:
 
       - name: Run make all
         run: make all
+
+  keepalive:
+    runs-on: ubuntu-latest
+
+    permissions:
+      actions: write
+  
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: gautamkrishnar/keepalive-workflow@v2
