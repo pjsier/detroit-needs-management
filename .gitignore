@@ -1,7 +1,10 @@
 .DS_Store
 .venv
 .ruff_cache
+.astro
+dist
 node_modules
 data/missing-addresses.csv
 data/resources.geojson
 data/map.kml
+src/assets/*.*json

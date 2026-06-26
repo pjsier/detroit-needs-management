@@ -1,6 +1,6 @@
-all: data/resources.geojson
+all: src/assets/resources.json data/resources.geojson
 
-data/resources.geojson: data/map.kml
+data/resources.geojson src/assets/resources.json: data/map.kml
 	poetry run python scripts/process_map.py
 
 data/map.kml:

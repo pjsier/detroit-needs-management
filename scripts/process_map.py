@@ -6,19 +6,81 @@ from pathlib import Path
 import json
 import csv
 import re
+from typing import Any, Annotated
+from pydantic import (
+    BaseModel,
+    AliasChoices,
+    BeforeValidator,
+    AliasPath,
+    Field,
+    model_validator,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-@dataclass
-class NeedsResource:
+def parse_bool(value):
+    if isinstance(value, str):
+        value = value.strip().upper()
+        if value == "":
+            return None
+        if "UNKNOWN" in value:
+            return None
+        if "TRUE" in value:
+            return True
+        if "FALSE" in value:
+            return False
+    return value
+
+
+OptionalBoolean = Annotated[
+    bool | None,
+    BeforeValidator(parse_bool),
+]
+
+
+class NeedResource(BaseModel):
     name: str
-    description: str
     category: str
-    address: str | None
-    attributes: dict[str, str]
-    coordinates: tuple[float, float] | None = None
+    address: str | None = Field(
+        default=None, validation_alias=AliasChoices("address", "Address")
+    )
+    city: str | None = Field(default=None, validation_alias="City")
+    zipcode: str | None = Field(
+        default=None, validation_alias=AliasChoices("zipcode", "Zipcode", "Zip Code")
+    )
+    services: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("Services Provided", "Service Provided"),
+    )
+    disclaimer: str | None = Field(
+        default=None, validation_alias=AliasChoices("Disclaimers", "Disclaimer(s)")
+    )
+    phone: str | None = None
+    hours: str | None = None
+    drop_in: OptionalBoolean = Field(default=None, validation_alias="Drop In Friendly?")
+    need_referral: OptionalBoolean = Field(
+        default=None, validation_alias="Need Referral?"
+    )
+    age_restricted: OptionalBoolean = Field(
+        default=None, validation_alias="Age Restricted?"
+    )
+    gendered: OptionalBoolean = Field(default=None, validation_alias="Gendered?")
+    languages: list[str] = Field(default_factory=list)
+    coordinates: tuple[float, float] | None = Field(default=None)
+
+    @model_validator(mode="before")
+    @classmethod
+    def preprocess(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        data = data.copy()
+        data["languages"] = []
+        for key, value in data.items():
+            if ("speaking" in key.lower()) and (value.strip() == "TRUE"):
+                data["languages"].append(key.split(" ")[0])
+        return data
 
 
 NS = {"kml": "http://www.opengis.net/kml/2.2"}
@@ -81,34 +143,22 @@ def parse_point(placemark: etree._Element) -> tuple[float, float] | None:
     return (coordinates[0], coordinates[1])
 
 
-def parse_placemark(element: etree._Element, category: str) -> NeedsResource:
-    attributes = parse_data_attributes(element)
-    address = _parse_first_text(element, "./kml:address")
-    coordinates = parse_point(element)
-
-    # Handle rentals which have a different structure
-    if "address" in attributes:
-        address = attributes.pop("address", "")
-    if ("lat" in attributes) and ("long" in attributes):
-        lat = attributes.pop("lat", 0)
-        lon = attributes.pop("long", 0)
-        coordinates = (float(lon), float(lat))
-
-    return NeedsResource(
-        name=_parse_first_text(element, "./kml:name"),
-        description=_parse_first_text(element, "./kml:description").replace(
-            "<br>", "\n"
-        ),
-        category=category,
-        address=_parse_first_text(element, "./kml:address"),
-        attributes=parse_data_attributes(element),
-        coordinates=parse_point(element),
+def parse_placemark(element: etree._Element, category: str) -> NeedResource:
+    # TODO: Handle rental coords (lat, "long")
+    return NeedResource.model_validate(
+        {
+            "name": _parse_first_text(element, "./kml:name"),
+            "category": category,
+            "address": _parse_first_text(element, "./kml:address"),
+            **parse_data_attributes(element),
+            "coordinates": parse_point(element),
+        }
     )
 
 
-def parse_folder(folder: etree) -> list[NeedsResource]:
+def parse_folder(folder: etree) -> list[Resources]:
     category = _parse_first_text(folder, "./kml:name")
-    resources: list[NeedsResource] = []
+    resources: list[Resources] = []
     for placemark in folder.xpath(".//kml:Placemark", namespaces=NS):
         resources.append(parse_placemark(placemark, category))
     return resources
@@ -121,19 +171,22 @@ def main():
     for folder in tree.xpath(".//kml:Folder", namespaces=NS):
         outputs.extend(parse_folder(folder))
 
+    resources = []
     resource_features = []
     addresses_to_geocode = set()
     address_cache = load_address_cache()
 
     for output in outputs:
-        output_dict = asdict(output)
-        coordinates = output_dict.pop("coordinates")
+        output_dict = output.model_dump(mode="json")
+        coordinates = output_dict.pop("coordinates", None)
         cleaned_address = clean_address(output.address)
         # Attempt to load from cache if not included
         if coordinates is None:
             coordinates = address_cache.get(cleaned_address)
+            output.coordinates = coordinates
 
         if coordinates:
+            resources.append(output.model_dump(mode="json"))
             resource_features.append(
                 {
                     "type": "Feature",
@@ -149,6 +202,9 @@ def main():
         writer = csv.DictWriter(f, fieldnames=["address"])
         writer.writeheader()
         writer.writerows([{"address": address} for address in addresses_to_geocode])
+
+    with Path.open(BASE_DIR / "src" / "assets" / "resources.json", "w") as f:
+        json.dump(resources, f)
 
     with Path.open(BASE_DIR / "data" / "resources.geojson", "w") as f:
         json.dump({"type": "FeatureCollection", "features": resource_features}, f)
