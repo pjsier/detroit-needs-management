@@ -104,7 +104,7 @@ body {
   margin-bottom: 0.5rem;
 }
 
-#nav-toggle[aria-expanded="false"] + #nav-menu {
+#nav-toggle[aria-expanded="false"]+#nav-menu {
   display: none;
 }
 
@@ -129,16 +129,20 @@ body {
   #nav-menu {
     flex-direction: row;
   }
+
   #nav-menu li {
     margin-left: 1rem;
   }
+
   #nav-toggle {
     display: none;
   }
+
   #nav-toggle[aria-expanded="true"] {
     margin-bottom: 0px;
   }
-  #nav-toggle[aria-expanded="false"] + #nav-menu {
+
+  #nav-toggle[aria-expanded="false"]+#nav-menu {
     display: flex;
   }
 }
@@ -189,7 +193,7 @@ body {
   margin-right: auto;
 }
 
-.filter-form > div {
+.filter-form>div {
   margin-bottom: 1.25rem;
 }
 
@@ -358,8 +362,8 @@ button[type="button"]:hover {
   font-weight: 500;
 }
 
-.filter-result > .label,
-.filter-result > .label > a {
+.filter-result>.label,
+.filter-result>.label>a {
   font-weight: 600;
 }
 
@@ -580,7 +584,7 @@ button[type="button"]:hover {
   padding-right: 36px;
 }
 
-#geocoder-search.has-value + #geocoder-clear {
+#geocoder-search.has-value+#geocoder-clear {
   display: inline-block;
 }
 
@@ -596,7 +600,11 @@ button[type="button"]:hover {
   margin-bottom: 1rem;
 }
 
-.content li + li {
+.content-row p:not(:last-child) {
+  margin-bottom: 1rem;
+}
+
+.content li+li {
   margin-top: 0.5rem;
 }
 

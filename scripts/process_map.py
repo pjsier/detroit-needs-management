@@ -13,6 +13,7 @@ from pydantic import (
     BeforeValidator,
     AliasPath,
     Field,
+    field_validator,
     model_validator,
 )
 
@@ -50,13 +51,14 @@ class NeedResource(BaseModel):
     zipcode: str | None = Field(
         default=None, validation_alias=AliasChoices("zipcode", "Zipcode", "Zip Code")
     )
-    services: str | None = Field(
-        default=None,
+    services: list[str] = Field(
+        default_factory=list,
         validation_alias=AliasChoices("Services Provided", "Service Provided"),
     )
     disclaimer: str | None = Field(
         default=None, validation_alias=AliasChoices("Disclaimers", "Disclaimer(s)")
     )
+    contact: str = Field(default="")
     phone: str | None = None
     hours: str | None = None
     drop_in: OptionalBoolean = Field(default=None, validation_alias="Drop In Friendly?")
@@ -68,7 +70,31 @@ class NeedResource(BaseModel):
     )
     gendered: OptionalBoolean = Field(default=None, validation_alias="Gendered?")
     languages: list[str] = Field(default_factory=list)
+    facility_type: str | None = Field(
+        default=None, validation_alias=AliasChoices("Type of Facility or Service", "Type of Service")
+    )
+    vetted: bool = Field(default=False, validation_alias="Vetted")
+    lgbtq_friendly: bool = Field(
+        default=False, validation_alias="LGBTQ Friendly?"
+    )  # Hide if False, not necessarily bad
+    need_appointment: bool = Field(default=False, validation_alias="Need Appointment?")
+    need_referral: bool = Field(default=False, validation_alias="Need Referral?")
+    need_id: bool = Field(default=False, validation_alias="Need ID?")
+    age_restricted: bool = Field(default=False, validation_alias="Age Restricted?")
+    family_friendly: bool = Field(default=False, validation_alias="Family Friendly?")
+    free: bool = Field(
+        default=False, validation_alias=AliasChoices("Free?", "Free Services?")
+    )
+    drop_in: bool = Field(default=False, validation_alias="Drop In Friendly?")
+    accepts_medicaid_medicare: bool = Field(
+        default=False, validation_alias="Accepts Medicaid/Medicare?"
+    )
+    additional_info: str = Field(default="", validation_alias="Additional Info")
+    notes: str = Field(default="", validation_alias="Notes")
+    description: str = Field(default="", validation_alias="Description")
+    disclaimer: str = Field(default="", validation_alias="Disclaimer(s)")
     coordinates: tuple[float, float] | None = Field(default=None)
+    # TODO: Split out rentals
 
     @model_validator(mode="before")
     @classmethod
@@ -81,6 +107,30 @@ class NeedResource(BaseModel):
             if ("speaking" in key.lower()) and (value.strip() == "TRUE"):
                 data["languages"].append(key.split(" ")[0])
         return data
+
+    @field_validator("services", mode="before")
+    @classmethod
+    def split_services(cls, value):
+        if isinstance(value, str):
+            return [item.strip() for item in re.split(r"(?:,| and )", value) if item.strip()]
+        return value
+
+    @field_validator(
+        "vetted",
+        "lgbtq_friendly",
+        "need_appointment",
+        "need_referral",
+        "need_id",
+        "age_restricted",
+        "family_friendly",
+        "free",
+        "drop_in",
+        "accepts_medicaid_medicare",
+        mode="before",
+    )
+    @classmethod
+    def parse_true_flag(cls, value):
+        return value == "TRUE"
 
 
 NS = {"kml": "http://www.opengis.net/kml/2.2"}
