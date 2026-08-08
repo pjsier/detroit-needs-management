@@ -206,9 +206,9 @@ def parse_placemark(element: etree._Element, category: str) -> NeedResource:
     )
 
 
-def parse_folder(folder: etree) -> list[Resources]:
+def parse_folder(folder: etree) -> list[NeedResource]:
     category = _parse_first_text(folder, "./kml:name")
-    resources: list[Resources] = []
+    resources: list[NeedResource] = []
     for placemark in folder.xpath(".//kml:Placemark", namespaces=NS):
         resources.append(parse_placemark(placemark, category))
     return resources
