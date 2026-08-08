@@ -2,15 +2,13 @@
 name = "detroit-needs-management"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "Pat Sier", email = "pjsier@gmail.com"}
-]
+authors = [{ name = "Pat Sier", email = "pjsier@gmail.com" }]
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "lxml (>=6.1.1,<7.0.0)",
     "requests (>=2.34.2,<3.0.0)",
-    "pydantic (>=2.13.4,<3.0.0)"
+    "pydantic (>=2.13.4,<3.0.0)",
 ]
 
 [build-system]
@@ -18,9 +16,7 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [dependency-groups]
-dev = [
-    "ruff (>=0.15.17,<0.16.0)"
-]
+dev = ["ruff (>=0.15.17,<0.16.0)"]
 
 [tool.poetry]
 package-mode = false
