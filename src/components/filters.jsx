@@ -18,9 +18,6 @@ const PAGE_SIZE = 25
 
 const SEARCH_DISTANCES = [5, 15, 25, 50, 100]
 
-// TODO:
-const SERVICES = ["test", "test2"]
-
 const DEBOUNCE_TIME = 350
 
 /* eslint-disable */
@@ -108,6 +105,10 @@ const FilterComponent = (props) => {
     isLocating: false,
     isPrinting: false,
   })
+
+  const services = createMemo(() => [
+    ...new Set(props.data.map(({ services }) => services).flat()),
+  ])
 
   const results = createMemo(() =>
     filterResults(
@@ -282,7 +283,7 @@ const FilterComponent = (props) => {
         </div>
         <fieldset>
           <legend>Services</legend>
-          {SERVICES.map((service, idx) => (
+          {services().map((service, idx) => (
             <label for={`service_${idx}`}>
               <input
                 type="checkbox"
