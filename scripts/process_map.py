@@ -6,7 +6,7 @@ from pathlib import Path
 import json
 import csv
 import re
-from typing import Any, Annotated
+from typing import Any, Annotated, Literal
 from pydantic import (
     BaseModel,
     AliasChoices,
@@ -71,7 +71,8 @@ class NeedResource(BaseModel):
     gendered: OptionalBoolean = Field(default=None, validation_alias="Gendered?")
     languages: list[str] = Field(default_factory=list)
     facility_type: str | None = Field(
-        default=None, validation_alias=AliasChoices("Type of Facility or Service", "Type of Service")
+        default=None,
+        validation_alias=AliasChoices("Type of Facility or Service", "Type of Service"),
     )
     vetted: bool = Field(default=False, validation_alias="Vetted")
     lgbtq_friendly: bool = Field(
@@ -112,7 +113,9 @@ class NeedResource(BaseModel):
     @classmethod
     def split_services(cls, value):
         if isinstance(value, str):
-            return [item.strip() for item in re.split(r"(?:,| and )", value) if item.strip()]
+            return [
+                item.strip() for item in re.split(r"(?:,| and )", value) if item.strip()
+            ]
         return value
 
     @field_validator(
@@ -132,6 +135,49 @@ class NeedResource(BaseModel):
     def parse_true_flag(cls, value):
         return value == "TRUE"
 
+
+class RentalResource(BaseModel):
+    category: Literal["Available Rentals"]
+    rental_category: str = Field(default="", validation_alias="name")
+    address: str
+    city: str
+    zipcode: str | None = Field(
+        default=None, validation_alias=AliasChoices("zipcode", "Zipcode", "Zip Code")
+    )
+    area: str = ""
+    bed: str
+    bath: str
+    rent: float
+    deposit: float
+    phone: str
+    owner: str
+    utility_allowance: float = Field(validation_alias="utility allowance")
+    gross_rent: float = Field(validation_alias="gross rent")
+    fmr_eligibility: bool = Field(validation_alias="fmr eligibility")
+    safmr_eligibility: bool = Field(validation_alias="safmr eligibility")
+    link: str = ""
+    coordinates: tuple[float, float] | None = Field(default=None)
+
+    @field_validator("zipcode", mode="before")
+    @classmethod
+    def clean_zipcode(cls, value):
+        if isinstance(value, str):
+            return value.split(".")[0]
+        return value
+
+    @field_validator(
+        "fmr_eligibility",
+        "safmr_eligibility",
+        mode="before",
+    )
+    @classmethod
+    def parse_true_flag(cls, value):
+        return value.upper() == "TRUE" if isinstance(value, str) else value
+
+
+ResourceRecord = Annotated[
+    RentalResource | NeedResource, Field(discriminator="category")
+]
 
 NS = {"kml": "http://www.opengis.net/kml/2.2"}
 
@@ -193,22 +239,23 @@ def parse_point(placemark: etree._Element) -> tuple[float, float] | None:
     return (coordinates[0], coordinates[1])
 
 
-def parse_placemark(element: etree._Element, category: str) -> NeedResource:
+def parse_placemark(element: etree._Element, category: str) -> ResourceRecord:
     # TODO: Handle rental coords (lat, "long")
-    return NeedResource.model_validate(
-        {
-            "name": _parse_first_text(element, "./kml:name"),
-            "category": category,
-            "address": _parse_first_text(element, "./kml:address"),
-            **parse_data_attributes(element),
-            "coordinates": parse_point(element),
-        }
-    )
+    validate_body = {
+        "name": _parse_first_text(element, "./kml:name"),
+        "category": category,
+        "address": _parse_first_text(element, "./kml:address"),
+        **parse_data_attributes(element),
+        "coordinates": parse_point(element),
+    }
+    if category == "Available Rentals":
+        return RentalResource.model_validate(validate_body)
+    return NeedResource.model_validate(validate_body)
 
 
-def parse_folder(folder: etree) -> list[NeedResource]:
+def parse_folder(folder: etree) -> list[ResourceRecord]:
     category = _parse_first_text(folder, "./kml:name")
-    resources: list[NeedResource] = []
+    resources: list[ResourceRecord] = []
     for placemark in folder.xpath(".//kml:Placemark", namespaces=NS):
         resources.append(parse_placemark(placemark, category))
     return resources
@@ -253,8 +300,14 @@ def main():
         writer.writeheader()
         writer.writerows([{"address": address} for address in addresses_to_geocode])
 
+    need_resources = [r for r in resources if r["category"] != "Available Rentals"]
+    rentals = [r for r in resources if r["category"] == "Available Rentals"]
+
     with Path.open(BASE_DIR / "src" / "assets" / "resources.json", "w") as f:
-        json.dump(resources, f)
+        json.dump(need_resources, f)
+
+    with Path.open(BASE_DIR / "src" / "assets" / "rentals.json", "w") as f:
+        json.dump(rentals, f)
 
     with Path.open(BASE_DIR / "data" / "resources.geojson", "w") as f:
         json.dump({"type": "FeatureCollection", "features": resource_features}, f)

@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/Layout.astro';
+import rentals from "../assets/rentals.json"
+import RentalFilterComponent from "../components/rental-filters"
+---
+
+<Layout>
+	<div class="filter-page">
+		<RentalFilterComponent client:load data={rentals} />
+	</div>
+</Layout>

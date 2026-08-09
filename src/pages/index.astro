@@ -1,8 +1,11 @@
 ---
-import Filters from '../components/Filters.astro';
 import Layout from '../layouts/Layout.astro';
+import resources from "../assets/resources.json"
+import FilterComponent from "../components/filters"
 ---
 
 <Layout>
-	<Filters />
+	<div class="filter-page">
+		<FilterComponent client:load data={resources} />
+	</div>
 </Layout>

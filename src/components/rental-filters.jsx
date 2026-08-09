@@ -11,15 +11,12 @@ import { createStore } from "solid-js/store"
 import { createIntersectionObserver } from "@solid-primitives/intersection-observer"
 import { updateQueryParams, haversine } from "../utils"
 import Geocoder from "./geocoder"
-import Result from "./result"
+import Rental from "./rental"
 import UpArrowIcon from "./icons/up-arrow-icon"
 
 const PAGE_SIZE = 25
 
 const SEARCH_DISTANCES = [5, 15, 25, 50, 100]
-
-// TODO:
-const SERVICES = ["test", "test2"]
 
 const DEBOUNCE_TIME = 350
 
@@ -50,14 +47,11 @@ function stateFromParams(params) {
       .filter((v) => !!v)
       .map((v) => +v),
     withinRange: +(params.get("withinRange") || 15),
-    // TODO:
-    // services:
-    //   (params.get("services") || "").split(",").filter((svc) => !!svc) || [],
     page: +params.get("page") || 1,
   }
 }
 
-function filterResults(data, coordinates, services, withinRange) {
+function filterResults(data, coordinates, withinRange, maxRent) {
   return data
     .map((result) =>
       coordinates && result.coordinates
@@ -66,15 +60,16 @@ function filterResults(data, coordinates, services, withinRange) {
     )
     .filter((result) => {
       if (
-        services?.length > 0 &&
-        !services.some((service) => result.services.includes(service))
-      ) {
-        return false
-      } else if (
         coordinates &&
         haversine(coordinates, result.coordinates) > withinRange
       ) {
         return false
+      }
+      return true
+    })
+    .filter((result) => {
+      if (maxRent > 0) {
+        return result.rent <= maxRent
       }
       return true
     })
@@ -95,12 +90,12 @@ function filtersHaveValues(filters) {
   )
 }
 
-const FilterComponent = (props) => {
+const RentalFilterComponent = (props) => {
   const [state, setState] = createStore({
     address: ``,
     coordinates: null,
-    services: [],
     withinRange: 15,
+    maxRent: null,
     page: 1,
     showScrollTop: false,
     usingLocation: false,
@@ -113,8 +108,8 @@ const FilterComponent = (props) => {
     filterResults(
       props.data,
       state.coordinates,
-      state.services,
-      state.withinRange
+      state.withinRange,
+      state.maxRent
     )
   )
 
@@ -192,7 +187,6 @@ const FilterComponent = (props) => {
       address: state.address,
       coordinates: state.coordinates,
       search: state.search,
-      services: state.services,
       withinRange: state.withinRange,
       page: state.page,
     })
@@ -280,33 +274,18 @@ const FilterComponent = (props) => {
             </select>
           </div>
         </div>
-        <fieldset>
-          <legend>Services</legend>
-          {SERVICES.map((service, idx) => (
-            <label for={`service_${idx}`}>
-              <input
-                type="checkbox"
-                id={`service_${idx}`}
-                name={`service_${idx}`}
-                checked={state.services.includes(service)}
-                onChange={(e) => {
-                  setState({
-                    services: [
-                      ...state.services.filter((svc) => svc !== service),
-                      ...(e.target.checked ? [service] : []),
-                    ],
-                  })
-                }}
-              />
-              <span>{service}</span>
-            </label>
-          ))}
-        </fieldset>
+        <div class="flex-row">
+          <label for="max_rent">Max rent</label>
+          <input
+            type="number"
+            name="max_rent"
+            id="max_rent"
+            onChange={(e) => debouncedSetFilters({ maxRent: +e.target.value })}
+          />
+        </div>
         <div class="results-row">
           <p aria-live="polite" aria-atomic="true" class="result-count">
-            {`${results().length.toLocaleString()} ${
-              results().length === 1 ? `result` : `results`
-            }`}
+            {`${results().length.toLocaleString()} ${results().length === 1 ? `result` : `results`}`}
           </p>
           {filtersHaveValues(state) && (
             <button
@@ -328,7 +307,7 @@ const FilterComponent = (props) => {
       <div class="filter-results">
         <For each={displayedResults()}>
           {({ coordinates, ...result }) => (
-            <Result
+            <Rental
               distance={
                 state.coordinates
                   ? haversine(state.coordinates, coordinates)
@@ -344,4 +323,4 @@ const FilterComponent = (props) => {
   )
 }
 
-export default FilterComponent
+export default RentalFilterComponent

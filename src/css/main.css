@@ -104,7 +104,7 @@ body {
   margin-bottom: 0.5rem;
 }
 
-#nav-toggle[aria-expanded="false"]+#nav-menu {
+#nav-toggle[aria-expanded="false"] + #nav-menu {
   display: none;
 }
 
@@ -142,7 +142,7 @@ body {
     margin-bottom: 0px;
   }
 
-  #nav-toggle[aria-expanded="false"]+#nav-menu {
+  #nav-toggle[aria-expanded="false"] + #nav-menu {
     display: flex;
   }
 }
@@ -193,7 +193,7 @@ body {
   margin-right: auto;
 }
 
-.filter-form>div {
+.filter-form > div {
   margin-bottom: 1.25rem;
 }
 
@@ -234,6 +234,10 @@ input[type="checkbox"] {
 
 fieldset input[type="checkbox"] {
   margin-right: 0.5rem;
+}
+
+label[for="max_rent"] {
+  min-width: 80px;
 }
 
 label[for="accepts_medicaid"],
@@ -278,6 +282,12 @@ fieldset label span {
   user-select: none;
 }
 
+.flex-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
 /* Results row */
 .results-row {
   display: flex;
@@ -293,6 +303,19 @@ fieldset label span {
   font-size: 0.9375rem;
   color: #666;
   font-weight: 500;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.detail-row > div {
+  flex: 1;
+  color: #555;
 }
 
 /* Buttons */
@@ -362,8 +385,8 @@ button[type="button"]:hover {
   font-weight: 500;
 }
 
-.filter-result>.label,
-.filter-result>.label>a {
+.filter-result > .label,
+.filter-result > .label > a {
   font-weight: 600;
 }
 
@@ -371,11 +394,9 @@ button[type="button"]:hover {
   text-decoration: underline;
 }
 
-/* Show more button */
 #results-end {
-  display: block;
-  margin: 2rem auto;
-  min-width: 200px;
+  margin-top: 1px;
+  height: 1px;
 }
 
 /* Visually hidden utility class */
@@ -406,6 +427,14 @@ button[type="button"]:hover {
     right: 1rem;
     width: 2.5rem;
     height: 2.5rem;
+  }
+
+  .detail-row {
+    flex-wrap: wrap;
+  }
+
+  .detail-row > div {
+    min-width: 200px;
   }
 }
 
@@ -584,7 +613,7 @@ button[type="button"]:hover {
   padding-right: 36px;
 }
 
-#geocoder-search.has-value+#geocoder-clear {
+#geocoder-search.has-value + #geocoder-clear {
   display: inline-block;
 }
 
@@ -604,7 +633,7 @@ button[type="button"]:hover {
   margin-bottom: 1rem;
 }
 
-.content li+li {
+.content li + li {
   margin-top: 0.5rem;
 }
 

@@ -15,26 +15,20 @@ const cleanContent = (description, notes, additional_info) => [
   ...(additional_info || "").split("\n"),
 ]
 
-const Result = (props) => {
-  const content = cleanContent(
-    props.description,
-    props.notes,
-    props.additional_info
-  )
+const Rental = (props) => {
   return (
     <div class="filter-result">
-      <p class="label">
-        {props.website ? (
-          <a target="_blank" rel="noopener noreferrer" href={props.website}>
-            {props.name}&nbsp;
-            <LinkIcon />
-          </a>
-        ) : (
-          props.name
-        )}
+      <p>
+        {props.address} {props.city} {props.zipcode}, {props.area}
       </p>
-      <p>{props.services.join(", ")}</p>
-      <p>{props.address}</p>
+      <p>
+        <Show when={props.link} fallback={props.rental_category}>
+          <a href={props.link}>
+            <LinkIcon />
+            &nbsp;{props.rental_category}
+          </a>
+        </Show>
+      </p>
       <Show when={props.phone}>
         <p>
           <a href={`tel:${cleanPhone(props.phone)}`}>
@@ -42,17 +36,31 @@ const Result = (props) => {
           </a>
         </p>
       </Show>
-      <Show when={content.length > 0}>
-        <div class="content-row">
-          <For each={content}>{(contentLine) => <p>{contentLine}</p>}</For>
+      <p>
+        <strong>Owner:</strong> {props.owner}
+      </p>
+      <div class="detail-row">
+        <div>
+          <strong>Rent:</strong> ${props.rent}
         </div>
-      </Show>
-      <Show when={props.disclaimer}>
-        <p>
-          <em>{props.disclaimer}</em>
-        </p>
-      </Show>
-      {/* TODO: Combine description, other info in content-ish field */}
+        <div>
+          <strong>Gross rent:</strong> ${props.gross_rent}
+        </div>
+        <div>
+          <strong>Deposit:</strong> ${props.deposit}
+        </div>
+      </div>
+      <div class="detail-row">
+        <div>
+          <strong>Beds:</strong> {props.bed}
+        </div>
+        <div>
+          <strong>Baths:</strong> {props.bath}
+        </div>
+        <div>
+          <strong>Utility Allowance:</strong> ${props.utility_allowance}
+        </div>
+      </div>
       <Show when={props.distance > 0}>
         <p>
           <strong>Distance: </strong>
@@ -70,4 +78,4 @@ const Result = (props) => {
   )
 }
 
-export default Result
+export default Rental
